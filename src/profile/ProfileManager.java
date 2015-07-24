@@ -42,12 +42,13 @@ public class ProfileManager extends atg.nucleus.GenericService {
 			return null;
 	}
 	
-	public RepositoryItem[] viewProfiles (int offset) throws RepositoryException{
+	public RepositoryItem[] viewProfiles (int offset, String sort) throws RepositoryException{
 		RqlStatement viewProfileRQL;
 		RepositoryView profileView = mUserRepository.getView("user");
-		Object rqlParams[] = new Object[1];
-		rqlParams[0] = offset;
-		viewProfileRQL = RqlStatement.parseRqlStatement("all range ?0+10");
+		Object rqlParams[] = new Object[2];			
+		rqlParams[1] = offset;
+		rqlParams[0] = sort;
+		viewProfileRQL = RqlStatement.parseRqlStatement("all order by ?0 range ?1+10");
 		RepositoryItem [] profileList = viewProfileRQL.executeQuery (profileView,rqlParams);
 
 		if (profileList != null) {

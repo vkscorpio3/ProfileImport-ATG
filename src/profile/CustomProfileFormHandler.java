@@ -66,7 +66,7 @@ public class CustomProfileFormHandler extends GenericFormHandler{
 			
 				profile = mProfileManager.findProfileByLogin(profiles.get("Login"));
 			
-				if(!(profile == null)){
+				if(profile != null){
 					addFormException(new DropletException("One of users already exists!"));
 				}			
 			}
@@ -80,8 +80,9 @@ public class CustomProfileFormHandler extends GenericFormHandler{
 	}
 	
 	void validateUpdateInput() throws RepositoryException{		
+		CsvReader profiles = null;
 		try{
-			CsvReader profiles = new CsvReader(getUploadedFile().getInputStream(), Charset.forName("UTF-8"));
+			profiles = new CsvReader(getUploadedFile().getInputStream(), Charset.forName("UTF-8"));
 			profiles.readHeaders();
 
 			while (profiles.readRecord()){			
@@ -91,12 +92,16 @@ public class CustomProfileFormHandler extends GenericFormHandler{
 				}			
 			}
 		
-			profiles.close();		
+			
 		} catch (FileNotFoundException e) {
 			logError(e);
 		} catch (IOException e) {
 			logError(e);
-		}		    
+		}	finally{
+			if (profiles != null) {
+				profiles.close();
+			}
+		}	    
 	}
 	
 	public boolean handleCreate (DynamoHttpServletRequest request, DynamoHttpServletResponse response)

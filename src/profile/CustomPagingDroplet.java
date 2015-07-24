@@ -29,7 +29,7 @@ public class CustomPagingDroplet extends atg.servlet.DynamoServlet{
 		ProfileManager mProfileManager = getProfileManager();
 		RepositoryItem[] list = null;
 		try {
-			list = mProfileManager.viewProfiles((page*10)-10);
+			list = mProfileManager.viewProfiles((page*10)-10,(String)request.getParameter("sort"));
 			
 			if (list != null) {  	     	       
 			   request.setParameter("element", list);
@@ -49,8 +49,8 @@ public class CustomPagingDroplet extends atg.servlet.DynamoServlet{
 			logError(e);			
 		}
 		
-		int noOfPages = (int) Math.ceil(countOfRecords * 1.0 / recordsPerPage);		
-		request.setAttribute("noOfPages", noOfPages);
-		request.setAttribute("currentPage", page);		
+		int countOfPages = (((countOfRecords - 1) / recordsPerPage) + 1);		
+		request.setAttribute("countOfPages", countOfPages);
+		request.setAttribute("currentPage", page);			
 	}
 }

@@ -21,8 +21,7 @@
 	   Pick a file to upload:
 		<dsp:input type="file" bean="/profileImport/CustomProfileFormHandler.uploadedFile" value=""/>
 		<dsp:input bean="CustomProfileFormHandler.successURL" type="hidden" value="listProfiles.jsp"/>
-		<dsp:input type="submit" bean="/profileImport/CustomProfileFormHandler.create" value="Import"/>
-		<dsp:input type="submit" bean="/profileImport/CustomProfileFormHandler.update" value="Update"/>   
+		<dsp:input type="submit" bean="/profileImport/CustomProfileFormHandler.create" value="Import"/>		  
 	 </dsp:form>
   </BODY>
 </HTML>

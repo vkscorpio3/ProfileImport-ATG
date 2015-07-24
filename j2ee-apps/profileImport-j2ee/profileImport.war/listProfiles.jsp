@@ -8,23 +8,19 @@
   <HEAD>
     <TITLE>Profiles</TITLE>
   </HEAD>
-  <BODY>
-  
-	
-	<dsp:droplet name="/profileImport/CustomPagingDroplet">
-		<dsp:param name="page" param="currentPage"/>
+  <BODY>	
+	<dsp:droplet name="/profileImport/CustomPagingDroplet">		
         <dsp:oparam name="output">
 		<table border="1" width="100%" cellpadding="5">
-  <tr>
-		<th><a href="listProfiles.jsp?page=<c:out value="${currentPage}"/>&sort=<c:out value="firstName"/>"/>FirstName</a></th>
-		<th><a href="listProfiles.jsp?page=<c:out value="${currentPage}"/>&sort=<c:out value="lastName"/>"/>LastName</a></th>
-		<th><a href="listProfiles.jsp?page=<c:out value="${currentPage}"/>&sort=<c:out value="login"/>"/>Login</a></th>
-		<th><a href="listProfiles.jsp?page=<c:out value="${currentPage}"/>&sort=<c:out value="email"/>"/>Email</a></th>
-		<th><a href="listProfiles.jsp?page=<c:out value="${currentPage}"/>&sort=<c:out value="phoneNumber"/>"/>Phone</a></th>
-	</tr>
+		  <tr>
+				<th><a href="listProfiles.jsp?page=<c:out value="${currentPage}"/>&sort=<c:out value="firstName"/>"/>FirstName</a></th>
+				<th><a href="listProfiles.jsp?page=<c:out value="${currentPage}"/>&sort=<c:out value="lastName"/>"/>LastName</a></th>
+				<th><a href="listProfiles.jsp?page=<c:out value="${currentPage}"/>&sort=<c:out value="login"/>"/>Login</a></th>
+				<th><a href="listProfiles.jsp?page=<c:out value="${currentPage}"/>&sort=<c:out value="email"/>"/>Email</a></th>
+				<th><a href="listProfiles.jsp?page=<c:out value="${currentPage}"/>&sort=<c:out value="phoneNumber"/>"/>Phone</a></th>
+			</tr>
             <dsp:droplet name="/atg/dynamo/droplet/ForEach">
-					<dsp:param name="array" param="element"/>            
-					<dsp:param name="sortProperties" param="sort"/>
+					<dsp:param name="array" param="element"/> 					
 					<dsp:oparam name="outputStart">
 					  <ul>
 					</dsp:oparam>
@@ -59,7 +55,7 @@
 	
 	<table border="1" cellpadding="5" cellspacing="5">
 		<tr>
-			<c:forEach begin="1" end="${noOfPages}" var="i">
+			<c:forEach begin="1" end="${countOfPages}" var="i">
 				<c:choose>
 					<c:when test="${currentPage eq i}">
 						<td><c:out value="${i}"/></td>
@@ -72,19 +68,22 @@
 		</tr>
 	</table>	
 	
-	<c:if test="${currentPage lt noOfPages}">
+	<c:if test="${currentPage lt countOfPages}">
 		<td><a href="listProfiles.jsp?page=<c:out value="${currentPage + 1}"/>">Next</a></td>
 	</c:if>
 
-			<dsp:a href="homeProfile.jsp">
+		<p><table>
+			<tr>	<td><dsp:a href="homeProfile.jsp">
                 Home  
-			</dsp:a>
-			<dsp:a href="importProfiles.jsp">
+			</dsp:a></td>
+			<td><dsp:a href="importProfiles.jsp">
 				Import profiles  
-			</dsp:a>
-			<dsp:a href="importProfiles.jsp">
+			</dsp:a></td>
+			<td><dsp:a href="importProfiles.jsp">
 				Update profiles  
-			</dsp:a> 				
+			</dsp:a></td>
+			</tr>
+			</table>	
 	 </BODY>
 </HTML>
 </dsp:page>	  

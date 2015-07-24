@@ -6,15 +6,17 @@
     <TITLE>Home</TITLE>
   </HEAD>
   <BODY>
-    <dsp:a href="listProfiles.jsp">
-                Show profiles  
-    </dsp:a> 
-	<dsp:a href="importProfiles.jsp">
-                Import profiles  
-    </dsp:a>
-	<dsp:a href="importProfiles.jsp">
-                Update profiles  
-    </dsp:a> 	
+	<table>
+		<tr>
+			<td><dsp:a href="listProfiles.jsp">
+						Show profiles  
+			</dsp:a></td> 
+			<td><dsp:a href="importProfiles.jsp">
+						Import profiles  
+			</dsp:a></td>
+			
+			</tr>
+		</table>
 	 </BODY>
 </HTML>
 </dsp:page>	  
