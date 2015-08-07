@@ -1,7 +1,6 @@
 package profile;
 
 import javax.transaction.TransactionManager;
-
 import atg.dtm.TransactionDemarcation;
 import atg.dtm.TransactionDemarcationException;
 import atg.repository.MutableRepository;
@@ -62,8 +61,7 @@ public class ProfileManager extends atg.nucleus.GenericService {
 		return null;
 	}
 
-	public RepositoryItem[] viewProfiles(String sortProperty, int offset,
-			int recordsCount) throws RepositoryException {		
+	public RepositoryItem[] viewProfiles(String sortProperty,int offset,int recordsCount)throws RepositoryException{		
 		rqlParams[1] = sortProperty;
 		rqlParams[2] = offset;
 		rqlParams[3] = recordsCount;		
