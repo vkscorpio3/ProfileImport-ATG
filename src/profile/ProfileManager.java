@@ -1,10 +1,9 @@
 package profile;
 
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.Charset;
-import com.csvreader.CsvReader;
+import javax.transaction.TransactionManager;
+
+import atg.dtm.TransactionDemarcation;
+import atg.dtm.TransactionDemarcationException;
 import atg.repository.MutableRepository;
 import atg.repository.MutableRepositoryItem;
 import atg.repository.Query;
@@ -16,106 +15,147 @@ import atg.repository.RepositoryView;
 import atg.repository.rql.RqlStatement;
 
 public class ProfileManager extends atg.nucleus.GenericService {
-	private Repository mUserRepository = getUserRepository();	
-	
-	public ProfileManager() {}
+	private RqlStatement findProfileRQL;
+	private RqlStatement viewProfileRQL;
+	private Object rqlParams[];
+	private RepositoryView profileView;
+	private Repository mUserRepository;
+	private TransactionManager mTransactionManager;
+
+	public TransactionManager getTransactionManager() {
+		return mTransactionManager;
+	}
+
+	public void setTransactionManager(TransactionManager pTransactionManager) {
+		mTransactionManager = pTransactionManager;
+	}
 
 	public void setUserRepository(Repository pUserRepository) {
 		mUserRepository = pUserRepository;
 	}
 
 	public Repository getUserRepository() {
-		return mUserRepository;	 
+		return mUserRepository;
 	}	
 	
-	public RepositoryItem findProfileByLogin(String pLogin) throws RepositoryException{		
-		RqlStatement findProfileRQL;
-		RepositoryView profileView = mUserRepository.getView("user");
-		Object rqlParams[] = new Object[1];
+	@Override
+	public void doStartService(){
+		try{
+			findProfileRQL = RqlStatement.parseRqlStatement("login = ?0");
+			viewProfileRQL = RqlStatement.parseRqlStatement("all order by ?1 range ?2+?3");
+			profileView = getUserRepository().getView("user");
+			rqlParams = new Object[4];			
+		}catch(RepositoryException re){
+			
+			if(isLoggingError())
+				logError(re);
+		}
+	}
+
+	public RepositoryItem findProfileByLogin(String pLogin)throws RepositoryException {		
 		rqlParams[0] = pLogin;
-		findProfileRQL = RqlStatement.parseRqlStatement("login = ?0");
-		RepositoryItem [] profileList = findProfileRQL.executeQuery (profileView,rqlParams);
+		RepositoryItem[] profileList = findProfileRQL.executeQuery(profileView, rqlParams);
 
 		if (profileList != null) {
 			return profileList[0];
 		}
-			return null;
+		return null;
 	}
-	
-	public RepositoryItem[] viewProfiles (int offset, String sort) throws RepositoryException{
-		RqlStatement viewProfileRQL;
-		RepositoryView profileView = mUserRepository.getView("user");
-		Object rqlParams[] = new Object[2];			
-		rqlParams[1] = offset;
-		rqlParams[0] = sort;
-		viewProfileRQL = RqlStatement.parseRqlStatement("all order by ?0 range ?1+10");
-		RepositoryItem [] profileList = viewProfileRQL.executeQuery (profileView,rqlParams);
+
+	public RepositoryItem[] viewProfiles(String sortProperty, int offset,
+			int recordsCount) throws RepositoryException {		
+		rqlParams[1] = sortProperty;
+		rqlParams[2] = offset;
+		rqlParams[3] = recordsCount;		
+		RepositoryItem[] profileList = viewProfileRQL.executeQuery(profileView,	rqlParams);
 
 		if (profileList != null) {
 			return profileList;
 		}
-			return null;
+		return null;
 	}
-	
-	public int profilesCount () throws RepositoryException{		
-		RepositoryView profileView = mUserRepository.getView("user");
+
+	public int profilesCount() throws RepositoryException {		
 		QueryBuilder qb = profileView.getQueryBuilder();
-		Query q = qb.createUnconstrainedQuery();		
-		return profileView.executeCountQuery(q);		
+		Query q = qb.createUnconstrainedQuery();
+		return profileView.executeCountQuery(q);
 	}
-	
-	public void createRepositoryItems(InputStream is) throws RepositoryException{			
-			
-			try{
-				CsvReader profiles = new CsvReader(is, Charset.forName("UTF-8"));
-				profiles.readHeaders();
-	
-				while (profiles.readRecord()){			
-					MutableRepositoryItem mutContactInfoItem = ((MutableRepository) mUserRepository).createItem("contactInfo");			
-					mutContactInfoItem.setPropertyValue("phoneNumber", profiles.get("PhoneNumber"));
-					((MutableRepository) mUserRepository).addItem(mutContactInfoItem);
-				    MutableRepositoryItem mutProfileItem  = ((MutableRepository) mUserRepository).createItem("user");
-				    mutProfileItem.setPropertyValue("firstName", profiles.get("FirstName"));
-			        mutProfileItem.setPropertyValue("lastName", profiles.get("LastName"));
-			        mutProfileItem.setPropertyValue("login", profiles.get("Login"));
-			        mutProfileItem.setPropertyValue("email", profiles.get("Email"));
-			        mutProfileItem.setPropertyValue("password", profiles.get("Login"));
-			        mutProfileItem.setPropertyValue("homeAddress", mutContactInfoItem);
-			        ((MutableRepository) mUserRepository).addItem(mutProfileItem);
-				}
-				
-				profiles.close();
-							
-			} catch (FileNotFoundException e) {
-				logError(e);
-			} catch (IOException e) {
-				logError(e);
-			} 		
-  }	
-	
-	public void updateRepositoryItems(InputStream is) throws RepositoryException{		
+
+	public void createRepositoryItems(String[] profileProperties) {
 		
-		try{
-			CsvReader profiles = new CsvReader(is, Charset.forName("UTF-8"));
-			profiles.readHeaders();
-			
-			while (profiles.readRecord()){				
-				MutableRepositoryItem mutProfileItem = ((MutableRepository) mUserRepository).getItemForUpdate(findProfileByLogin(profiles.get("Login")).getRepositoryId(), "user");
-				MutableRepositoryItem mutContactInfoItem = ((MutableRepository) mUserRepository).getItemForUpdate(((RepositoryItem)findProfileByLogin(profiles.get("Login")).getPropertyValue("homeAddress")).getRepositoryId(), "contactInfo");
-				mutContactInfoItem.setPropertyValue("phoneNumber", profiles.get("PhoneNumber"));
-				((MutableRepository) mUserRepository).updateItem(mutContactInfoItem);
-				mutProfileItem.setPropertyValue("firstName", profiles.get("FirstName"));
-				mutProfileItem.setPropertyValue("lastName", profiles.get("LastName"));
-				mutProfileItem.setPropertyValue("login", profiles.get("Login"));
-				mutProfileItem.setPropertyValue("email", profiles.get("Email"));
-				mutProfileItem.setPropertyValue("password", profiles.get("Login"));
-		        mutProfileItem.setPropertyValue("homeAddress", mutContactInfoItem);
-		        ((MutableRepository) mUserRepository).updateItem(mutProfileItem);				
-			}
-		}catch (FileNotFoundException e) {
-			logError(e);
-		}catch (IOException e) {
-			logError(e);
-		}		   	
+		try {
+			TransactionDemarcation td = new TransactionDemarcation();
+			td.begin(getTransactionManager(), td.REQUIRED);
+
+			try {
+				MutableRepositoryItem mutContactInfoItem = ((MutableRepository) mUserRepository).createItem("contactInfo");
+				mutContactInfoItem.setPropertyValue("phoneNumber", profileProperties[4]);
+				((MutableRepository) mUserRepository).addItem(mutContactInfoItem);
+				MutableRepositoryItem mutProfileItem = ((MutableRepository) mUserRepository).createItem("user");
+				mutProfileItem.setPropertyValue("firstName",profileProperties[0]);
+				mutProfileItem.setPropertyValue("lastName",profileProperties[1]);
+				mutProfileItem.setPropertyValue("login", profileProperties[2]);
+				mutProfileItem.setPropertyValue("email", profileProperties[3]);
+				mutProfileItem.setPropertyValue("password", "12345");
+				mutProfileItem.setPropertyValue("homeAddress",mutContactInfoItem);
+				((MutableRepository) mUserRepository).addItem(mutProfileItem);
+			} catch (RepositoryException re) {
+
+				if (isLoggingError())
+					logError(re);
+
+				try {
+					getTransactionManager().setRollbackOnly();
+				} catch (Exception se) {
+					if (isLoggingError())
+						logError("Unable to set rollback for transaction", se);
+				}
+			} finally {
+				td.end();
+			  }
+		} catch (TransactionDemarcationException e) {
+			if (isLoggingError())
+				logError("creating transaction demarcation failed, no profile created", e);
+		}
 	}
+
+	public void updateRepositoryItems(RepositoryItem profile, String[] profileProperties) throws RepositoryException {
+		
+		try {
+			TransactionDemarcation td = new TransactionDemarcation();
+			td.begin(getTransactionManager(), td.REQUIRED);
+
+			try {		
+				MutableRepositoryItem mutProfileItem = ((MutableRepository) mUserRepository).getItemForUpdate(profile.getRepositoryId(), "user");
+				MutableRepositoryItem mutContactInfoItem = ((MutableRepository) mUserRepository)
+						.getItemForUpdate(((RepositoryItem) profile.getPropertyValue("homeAddress")).getRepositoryId(),"contactInfo");
+				mutContactInfoItem.setPropertyValue("phoneNumber", profileProperties[4]);
+				((MutableRepository) mUserRepository).updateItem(mutContactInfoItem);
+				mutProfileItem.setPropertyValue("firstName", profileProperties[0]);
+				mutProfileItem.setPropertyValue("lastName", profileProperties[1]);
+				mutProfileItem.setPropertyValue("login", profileProperties[2]);
+				mutProfileItem.setPropertyValue("email", profileProperties[3]);
+				mutProfileItem.setPropertyValue("password", "12345");
+				mutProfileItem.setPropertyValue("homeAddress", mutContactInfoItem);
+				((MutableRepository) mUserRepository).updateItem(mutProfileItem);
+			}catch (RepositoryException re) {
+
+				if (isLoggingError())
+					logError(re);
+
+				try {
+					getTransactionManager().setRollbackOnly();
+				} catch (Exception se) {
+					if (isLoggingError())
+						logError("Unable to set rollback for transaction", se);
+				}
+			} finally {
+				td.end();
+			  }
+	    } catch (TransactionDemarcationException e) {
+		      if (isLoggingError())
+			     logError("creating transaction demarcation failed, no profile created", e);
+	    }
+     }		
 }
+	

@@ -14,12 +14,12 @@ import atg.servlet.DynamoHttpServletRequest;
 import atg.servlet.DynamoHttpServletResponse;
 import atg.servlet.UploadedFile;
 
-public class CustomProfileFormHandler extends GenericFormHandler{
+public class CustomProfileFormHandler extends GenericFormHandler {
 	private ProfileManager mProfileManager = getProfileManager();
-	private UploadedFile mUploadedFile = null;		
+	private UploadedFile mUploadedFile = null;
 	private String mSuccessURL = null;
 	private RepositoryItem profile = null;
-	private Repository mLockRepository = getLockRepository();		
+	private Repository mLockRepository = getLockRepository();
 
 	public UploadedFile getUploadedFile() {
 		return mUploadedFile;
@@ -36,130 +36,96 @@ public class CustomProfileFormHandler extends GenericFormHandler{
 	public void setProfileManager(ProfileManager pProfileManager) {
 		this.mProfileManager = pProfileManager;
 	}
-	
+
 	public String getSuccessURL() {
-    	return mSuccessURL;
-    }
-	
-    public void setSuccessURL(String pSuccessURL) {
-    	mSuccessURL = pSuccessURL;
-    }
-    
-    public Repository getLockRepository() {
+		return mSuccessURL;
+	}
+
+	public void setSuccessURL(String pSuccessURL) {
+		mSuccessURL = pSuccessURL;
+	}
+
+	public Repository getLockRepository() {
 		return mLockRepository;
 	}
 
 	public void setLockRepository(Repository pLockRepository) {
 		this.mLockRepository = pLockRepository;
 	}
-	
-	void validateImportInput() throws RepositoryException{
-		try{
-			CsvReader profiles = new CsvReader(getUploadedFile().getInputStream(), Charset.forName("UTF-8"));
+
+	void validateImportInput() throws RepositoryException {
+		try {
+			CsvReader profiles = new CsvReader(getUploadedFile()
+					.getInputStream(), Charset.forName("UTF-8"));
 			profiles.readHeaders();
 
-			while (profiles.readRecord()){			
-			
-				if((profiles.getColumnCount() != 5)){
-					addFormException(new DropletException("Incorrect  count of columns!"));
+			while (profiles.readRecord()) {
+
+				if ((profiles.getColumnCount() != 5)) {
+					addFormException(new DropletException(
+							"Incorrect  count of columns for profile with login "
+									+ profiles.get("Login") + " !"));
 				}
-			
-				profile = mProfileManager.findProfileByLogin(profiles.get("Login"));
-			
-				if(profile != null){
-					addFormException(new DropletException("One of users already exists!"));
-				}			
 			}
-		
-			profiles.close();		
-		} catch (FileNotFoundException e) {
-			logError(e);
-		} catch (IOException e) {
-			logError(e);
-		}		    
-	}
-	
-	void validateUpdateInput() throws RepositoryException{		
-		CsvReader profiles = null;
-		try{
-			profiles = new CsvReader(getUploadedFile().getInputStream(), Charset.forName("UTF-8"));
-			profiles.readHeaders();
 
-			while (profiles.readRecord()){			
-			
-				if((profiles.getColumnCount() != 5)){
-					addFormException(new DropletException("Incorrect  count of columns!"));
-				}			
-			}
-		
-			
+			profiles.close();
 		} catch (FileNotFoundException e) {
 			logError(e);
 		} catch (IOException e) {
 			logError(e);
-		}	finally{
-			if (profiles != null) {
-				profiles.close();
-			}
-		}	    
+		}
 	}
-	
-	public boolean handleCreate (DynamoHttpServletRequest request, DynamoHttpServletResponse response)
-		      throws java.io.IOException, RepositoryException{		
-		validateImportInput();		
-		
-		if(!(getFormError())){
-			if(!(Boolean)mLockRepository.getItem("100002","lock").getPropertyValue("isLocked")){
-				((MutableRepository) mLockRepository).getItemForUpdate("100002","lock").setPropertyValue("isLocked",true);		
-			
-				try {			
-					mProfileManager.createRepositoryItems(getUploadedFile().getInputStream());
-				    ((MutableRepository) mLockRepository).getItemForUpdate("100002","lock").setPropertyValue("isLocked",false);	
+
+	public boolean handleImport(DynamoHttpServletRequest request,
+			DynamoHttpServletResponse response) throws java.io.IOException,
+			RepositoryException {
+		validateImportInput();
+		String[] profileProperties = null;
+
+		if (!(getFormError())) {
+
+			if (!(Boolean) mLockRepository.getItem("100002", "lock")
+					.getPropertyValue("isLocked")) {
+				((MutableRepository) mLockRepository).getItemForUpdate(
+						"100002", "lock").setPropertyValue("isLocked", true);
+
+				try {
+					CsvReader profiles = new CsvReader(getUploadedFile().getInputStream(), Charset.forName("UTF-8"));
+					profiles.readHeaders();
+
+					while (profiles.readRecord()) {
+						profile = mProfileManager.findProfileByLogin(profiles.get("Login"));
+						profileProperties = new String[] {
+								profiles.get("FirstName"),
+								profiles.get("LastName"),
+								profiles.get("Login"),
+								profiles.get("Email"),
+								profiles.get("PhoneNumber") 
+						};
+						
+						if (profile != null) {
+							mProfileManager.updateRepositoryItems(profile,profileProperties);
+						} else {
+							mProfileManager.createRepositoryItems(profileProperties);
+						}
+					}
+					((MutableRepository) mLockRepository).getItemForUpdate("100002", "lock").setPropertyValue("isLocked",false);
 				} catch (RepositoryException e) {
 					logError(e);
-				} finally{
+				} finally {
 					getUploadedFile().getInputStream().close();
-					((MutableRepository) mLockRepository).getItemForUpdate("100002","lock").setPropertyValue("isLocked",false);
+					((MutableRepository) mLockRepository).getItemForUpdate("100002", "lock").setPropertyValue("isLocked",false);
 				}
-			
+
 				if (getSuccessURL() != null) {
-					response.sendLocalRedirect(getSuccessURL(), request); 
-					return false;  
-				} 		
-			}	else{
-				addFormException(new DropletException("It is running other import at the same time. Please, wait!"));
-			}		
+					response.sendLocalRedirect(getSuccessURL(), request);
+					return false;
+				}
+			} else {
+				addFormException(new DropletException(
+						"It is running other import at the same time. Please, wait!"));
+			}
 		}
-		
 		return true;
-    }
-	
-	public boolean handleUpdate (DynamoHttpServletRequest request, DynamoHttpServletResponse response)
-		      throws java.io.IOException, RepositoryException{			
-		validateUpdateInput();		
-		
-		if(!(getFormError())){
-			if(!(Boolean)mLockRepository.getItem("100002","lock").getPropertyValue("isLocked")){
-				((MutableRepository) mLockRepository).getItemForUpdate("100002","lock").setPropertyValue("isLocked",true);		
-			
-				try {			
-					mProfileManager.updateRepositoryItems(getUploadedFile().getInputStream());
-				} catch (RepositoryException e) {
-					logError(e);
-				} finally{
-					getUploadedFile().getInputStream().close();
-					((MutableRepository) mLockRepository).getItemForUpdate("100002","lock").setPropertyValue("isLocked",false);
-				}
-			
-				if (getSuccessURL() != null) {
-					response.sendLocalRedirect(getSuccessURL(), request); 
-					return false;  
-				} 		
-			}else{
-				addFormException(new DropletException("It is running other import at the same time. Please, wait!"));
-			}
-		}
-		
-		return true;					
-     }	
+	}
 }
