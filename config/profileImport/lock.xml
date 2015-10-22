@@ -5,7 +5,7 @@
     <name>Lock Repository</name>
     <author>Vyachaslau Koshman</author>    
   </header>  
-  <item-descriptor name="lock" display-property="id">
+  <item-descriptor name="lock" display-property="id" cache-mode="disabled">
       <table name="lock" type="primary"  id-column-name="id">
       <property name="id"  data-type="string"/>  
       <property name="isLocked" column-name="isLocked" data-type="boolean"/>   
